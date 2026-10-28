@@ -27,7 +27,7 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
 
-    /* FOND TRANSPARENT POUR OBS */
+    /* TRANSPARENT BACKGROUND FOR OBS */
     body {
       background-color: transparent !important;
       background-image: none !important;
@@ -60,7 +60,7 @@
       display: flex; gap: 20px; align-items: center; justify-content: center; flex: 1; margin: 10px 0;
     }
 
-    /* Grille de Bataille Navale */
+    /* Battleship Grid */
     .grid-container {
       display: grid;
       grid-template-columns: repeat(6, 48px);
@@ -103,7 +103,7 @@
       color: var(--text-muted);
     }
 
-    /* Panneau d'information latéral */
+    /* Side Panel */
     .side-panel {
       width: 260px;
       display: flex;
@@ -126,7 +126,7 @@
       font-weight: bold;
     }
 
-    /* Contrôles de tir */
+    /* Controls */
     .chat-simulator { display: flex; gap: 8px; border-top: 1px solid var(--tb-border); padding-top: 10px; }
     .chat-input {
       flex: 1; background: rgba(0, 0, 0, 0.5); border: 1px solid var(--tb-border);
@@ -140,7 +140,7 @@
     }
     .chat-btn:hover { filter: brightness(1.2); }
 
-    /* Overlay Victoire/Défaite */
+    /* Victory / Defeat Overlay */
     .status-overlay {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(13, 3, 6, 0.95); display: flex; flex-direction: column;
@@ -157,47 +157,44 @@
   <div class="app-container">
     <div class="header">
       <span class="brand-badge">THE BEYOND SHOW</span>
-      <span class="game-title">BATAILLE NAVALE</span>
-      <span class="stats-badge" id="statsDisplay">TIRS: 0 / 14</span>
+      <span class="game-title">BATTLESHIP</span>
+      <span class="stats-badge" id="statsDisplay">SHOTS: 0 / 14</span>
     </div>
 
     <div class="game-body">
-      <!-- Grille 6x6 (A à F, 1 à 6) -->
-      <div class="grid-container" id="battleGrid">
-        <!-- Généré dynamiquement en JS -->
-      </div>
+      <!-- 6x6 Grid (A to F, 1 to 6) -->
+      <div class="grid-container" id="battleGrid"></div>
 
-      <!-- Panneau latéral d'instructions -->
+      <!-- Side Information Panel -->
       <div class="side-panel">
         <div class="info-box">
-          <span>OBJECTIF :</span> Couler tous les navires cachés de la flotte ennemie en un minimum de tirs !
+          <span>OBJECTIVE:</span> Sink all hidden enemy warships using the fewest shots possible!
         </div>
         <div class="info-box">
-          <span>COMMANDES :</span> Tapez une case (ex: <span>A3</span>, <span>D5</span>) dans la barre de tir ou cliquez directement sur la grille.
+          <span>CONTROLS:</span> Type coordinates (e.g. <span>A3</span>, <span>D5</span>) in the bar below or click directly on the grid.
         </div>
       </div>
     </div>
 
-    <!-- Zone de tir / Saisie -->
+    <!-- Target Input Area -->
     <div class="chat-simulator">
-      <input type="text" id="chatInput" class="chat-input" placeholder="Taper une coordonnée (ex: B4)..." autofocus>
-      <button class="chat-btn" id="sendBtn">TIRER !</button>
+      <input type="text" id="chatInput" class="chat-input" placeholder="Type coordinates (e.g. B4)..." autofocus>
+      <button class="chat-btn" id="sendBtn">FIRE!</button>
     </div>
 
     <!-- Status Overlay -->
     <div class="status-overlay" id="statusOverlay">
       <div class="status-title" id="statusTitle">VICTORY!</div>
-      <div class="status-desc" id="statusDesc">Flotte ennemie entièrement coulée !</div>
-      <button class="chat-btn" onclick="resetGameCloud()">PROCHAINE FLOTTE</button>
+      <div class="status-desc" id="statusDesc">Enemy fleet completely destroyed!</div>
+      <button class="chat-btn" onclick="resetGameCloud()">NEXT FLEET</button>
     </div>
   </div>
 
-  <!-- FIREBASE & LOGIQUE BATAILLE NAVALE -->
+  <!-- FIREBASE & BATTLESHIP LOGIC -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // Configuration Firebase validée pour la Bataille Navale
     const firebaseConfig = {
       apiKey: "AIzaSyCac49TFDXfO5TsdwJEtVb4lJqOR-JXmg0",
       authDomain: "tbshow-battleship.firebaseapp.com",
@@ -215,7 +212,7 @@
     const COLS = [1, 2, 3, 4, 5, 6];
     const MAX_TRIES = 14;
 
-    // Générateur audio synthétique (Son d'explosion ou de plouf)
+    // Audio Synthesizer (Hit / Miss)
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSound(type) {
       if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -231,7 +228,7 @@
         gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
         osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-      } else { // Plouf (Raté)
+      } else { // Splash (Miss)
         osc.type = 'sine';
         osc.frequency.setValueAtTime(300, audioCtx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.2);
@@ -241,7 +238,6 @@
       }
     }
 
-    // Création visuelle de la grille
     function buildGridUI() {
       const grid = document.getElementById('battleGrid');
       grid.innerHTML = '';
@@ -258,7 +254,6 @@
       });
     }
 
-    // Écouteur Firebase en temps réel
     const gameRef = ref(db, 'battleship_game');
     onValue(gameRef, (snapshot) => {
       const data = snapshot.val();
@@ -275,7 +270,7 @@
       const ships = data.ships || [];
       let totalShots = Object.keys(shots).length;
 
-      document.getElementById('statsDisplay').innerText = `TIRS: ${totalShots} / ${MAX_TRIES}`;
+      document.getElementById('statsDisplay').innerText = `SHOTS: ${totalShots} / ${MAX_TRIES}`;
 
       ROWS.forEach(row => {
         COLS.forEach(col => {
@@ -305,7 +300,7 @@
         const data = snapshot.val() || { shots: {}, ships: [] };
         let shots = data.shots || {};
         
-        if (shots[cleanTarget]) return; // Déjà tiré ici
+        if (shots[cleanTarget]) return;
 
         shots[cleanTarget] = true;
         const isAHit = data.ships.includes(cleanTarget);
@@ -331,11 +326,11 @@
       if (allSunk && ships.length > 0) {
         confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
         document.getElementById('statusTitle').innerText = "VICTORY!";
-        document.getElementById('statusDesc').innerText = `Flotte ennemie coulée en ${totalShots} tirs !`;
+        document.getElementById('statusDesc').innerText = `Enemy fleet sunk in ${totalShots} shots!`;
         overlay.classList.add('active');
       } else if (totalShots >= MAX_TRIES && !allSunk) {
         document.getElementById('statusTitle').innerText = "DEFEAT";
-        document.getElementById('statusDesc').innerText = `Munitions épuisées ! Les navires ont échappé.`;
+        document.getElementById('statusDesc').innerText = `Out of ammo! The fleet got away.`;
         overlay.classList.add('active');
       } else {
         overlay.classList.remove('active');
